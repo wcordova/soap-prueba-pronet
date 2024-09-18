@@ -23,16 +23,22 @@ interface TipoCambio {
   no_solicitud: string;
 }
 
+interface FetchResponse {
+  data: TipoCambio[];
+  totalPages: number;
+  currentPage: number;
+}
+
 export default function Page() {
-  const [fecha, setFecha] = useState('');
-  const [fechainit, setFechainit] = useState(''); 
-  const [fechafin, setFechafin] = useState(''); 
-  const [tipoCambios, setTipoCambios] = useState<any[]>([]);
+  const [fecha, setFecha] = useState<string>('');
+  const [fechainit, setFechainit] = useState<string>(''); 
+  const [fechafin, setFechafin] = useState<string>(''); 
+  const [tipoCambios, setTipoCambios] = useState<TipoCambio[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [pageSize] = useState(10);
-  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [pageSize] = useState<number>(10);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const fetchTipoCambios = async (page: number) => {
     setLoading(true);
@@ -41,7 +47,7 @@ export default function Page() {
       if (!response.ok) {
         throw new Error('Error al obtener los datos');
       }
-      const data: { data: TipoCambio[]; totalPages: number; currentPage: number } = await response.json();
+      const data: FetchResponse = await response.json();
       setTipoCambios(data.data || []);
       setTotalPages(data.totalPages || 1);
       setCurrentPage(data.currentPage - 1 || 0);
@@ -65,7 +71,7 @@ export default function Page() {
       if (!response.ok) {
         throw new Error('Error al obtener los datos');
       }
-      const data = await response.json();
+      const data: FetchResponse = await response.json();
       setTipoCambios(data.data || []);
       setTotalPages(data.totalPages || 1);
       setCurrentPage(0);
@@ -94,8 +100,8 @@ export default function Page() {
       if (!response.ok) {
         throw new Error('Error al obtener los datos');
       }
-      await response.json();
-      setTipoCambios([]);
+      const data = await response.json(); // Adjust this based on actual response
+      setTipoCambios(data.data || []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -109,14 +115,15 @@ export default function Page() {
     fetchTipoCambios(currentPage);
   }, [currentPage]);
 
-  const calcularPromedio = (tipo: string) => {
+  const calcularPromedio = (tipo: keyof TipoCambio) => {
     if (tipoCambios.length === 0) return 0;
     const suma = tipoCambios.reduce((acc, item) => {
-      const valor = parseFloat(item[tipo]);
+      const valor = parseFloat(item[tipo].toString()); 
       return !isNaN(valor) ? acc + valor : acc;
     }, 0);
     return (suma / tipoCambios.length).toFixed(2);
   };
+  
 
   const promedioVenta = tipoCambios.length > 0 ? calcularPromedio('tc_venta') : 0;
   const promedioCompra = tipoCambios.length > 0 ? calcularPromedio('tc_compra') : 0;
@@ -213,8 +220,8 @@ export default function Page() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {tipoCambios.map((item) => (
-              <TableRow key={item.tipo_cambio}>
+            {tipoCambios.map((item, index) => (
+              <TableRow key={index}>
                 <TableCell>{new Date(item.fecha).toLocaleDateString()}</TableCell>
                 <TableCell>{item.tc_venta}</TableCell>
                 <TableCell>{item.tc_compra}</TableCell>
@@ -222,7 +229,6 @@ export default function Page() {
                 <TableCell>{item.no_solicitud}</TableCell>
               </TableRow>
             ))}
-            {/* Fila para los promedios, solo si hay datos */}
             {tipoCambios.length > 0 && (
               <TableRow>
                 <TableCell><strong>Promedio</strong></TableCell>

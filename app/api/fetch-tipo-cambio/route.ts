@@ -5,6 +5,29 @@ import * as soap from 'soap';
 
 const prisma = new PrismaClient();
 
+interface TipoCambioItem {
+  fecha: string;
+  venta: string;
+  compra: string;
+  moneda: string;
+}
+
+interface TipoCambioResponse {
+  TipoCambioFechaInicialResult: {
+    Vars: {
+      Var: TipoCambioItem[];
+    };
+  };
+}
+
+interface TipoCambioData {
+  fecha: Date;
+  tc_venta: number;
+  tc_compra: number;
+  moneda: number;
+  no_solicitud: number;
+}
+
 export async function POST(request: Request) {
   const { fechainit } = await request.json();
   if (!fechainit) {
@@ -20,7 +43,7 @@ export async function POST(request: Request) {
   try {
     console.log('SOAP URL:', SOAP_URL);
 
-    const client = await new Promise<any>((resolve, reject) => {
+    const client = await new Promise<soap.Client>((resolve, reject) => {
       soap.createClient(SOAP_URL, (err, client) => {
         if (err) {
           console.error('Error al crear cliente SOAP:', err);
@@ -35,29 +58,31 @@ export async function POST(request: Request) {
 
     const [result] = await client.TipoCambioFechaInicialAsync({ fechainit });
 
-    const tipoCambioResult = result.TipoCambioFechaInicialResult;
-    const vars = tipoCambioResult.Vars.Var;
+    const tipoCambioResult: TipoCambioResponse = result;
+    const vars = tipoCambioResult.TipoCambioFechaInicialResult.Vars.Var;
 
     // Guardar los datos en la base de datos
     const solicitud = await prisma.solicitud.create({
       data: {},
     });
 
-    const tipoCambios = vars.map((item: any) => {
-      const fecha = parseDate(item.fecha);
-      if (isNaN(fecha.getTime())) {
-        console.error(`Fecha inválida: ${item.fecha}`);
-        return null; 
-      }
+    const tipoCambios: TipoCambioData[] = vars
+      .map((item) => {
+        const fecha = parseDate(item.fecha);
+        if (isNaN(fecha.getTime())) {
+          console.error(`Fecha inválida: ${item.fecha}`);
+          return null;
+        }
 
-      return {
-        fecha: fecha,
-        tc_venta: parseFloat(item.venta),
-        tc_compra: parseFloat(item.compra),
-        moneda: parseInt(item.moneda, 10),
-        no_solicitud: solicitud.solicitud,
-      };
-    }).filter((item: null) => item !== null);
+        return {
+          fecha: fecha,
+          tc_venta: parseFloat(item.venta),
+          tc_compra: parseFloat(item.compra),
+          moneda: parseInt(item.moneda, 10),
+          no_solicitud: solicitud.solicitud,
+        } as TipoCambioData;
+      })
+      .filter((item): item is TipoCambioData => item !== null); // Filtra los nulos
 
     await prisma.tipoCambio.createMany({
       data: tipoCambios,

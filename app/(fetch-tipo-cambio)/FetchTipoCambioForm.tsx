@@ -1,5 +1,8 @@
-// components/FetchTipoCambioForm.tsx
 import React, { useState } from 'react';
+
+interface TipoCambioResponse {
+  tipoCambio: string;
+}
 
 const FetchTipoCambioForm: React.FC = () => {
   const [fecha, setFecha] = useState<string>('');
@@ -25,10 +28,11 @@ const FetchTipoCambioForm: React.FC = () => {
       if (!response.ok) {
         throw new Error('Error al obtener el tipo de cambio.');
       }
-      const data = await response.json();
+      const data: TipoCambioResponse = await response.json(); 
       setTipoCambio(data.tipoCambio); 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
