@@ -1,12 +1,24 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Button, TablePagination, Typography } from '@mui/material';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  Button,
+  TablePagination,
+  Typography,
+} from '@mui/material';
 import { formatDate } from '../utils/helper';
 
 export default function Page() {
   const [fecha, setFecha] = useState('');
-  const [fechainit, setFechainit] = useState(''); // Nueva fecha de inicio
-  const [fechafin, setFechafin] = useState(''); // Nueva fecha de fin
+  const [fechainit, setFechainit] = useState(''); 
+  const [fechafin, setFechafin] = useState(''); 
   const [tipoCambios, setTipoCambios] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -34,7 +46,6 @@ export default function Page() {
     }
   };
 
-  // Función para buscar por rango de fechas (fecha inicio y fecha fin)
   const fetchTipoCambioByDateRange = async () => {
     if (!fechainit || !fechafin) return;
 
@@ -59,9 +70,48 @@ export default function Page() {
     }
   };
 
+  const fetchTipoCambioByDate = async () => {
+    if (!fecha) return; 
+
+    setLoading(true);
+    try {
+      const formattedFecha = formatDate(fecha);
+      const response = await fetch('/api/fetch-tipo-cambio', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fechainit: formattedFecha }),
+      });
+      if (!response.ok) {
+        throw new Error('Error al obtener los datos');
+      }
+      await response.json();
+      setTipoCambios([]);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setTipoCambios([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchTipoCambios(currentPage);
   }, [currentPage]);
+
+  const calcularPromedio = (tipo: string) => {
+    if (tipoCambios.length === 0) return 0;
+    const suma = tipoCambios.reduce((acc, item) => {
+      const valor = parseFloat(item[tipo]);
+      return !isNaN(valor) ? acc + valor : acc;
+    }, 0);
+    return (suma / tipoCambios.length).toFixed(2);
+  };
+
+  const promedioVenta = tipoCambios.length > 0 ? calcularPromedio('tc_venta') : 0;
+  const promedioCompra = tipoCambios.length > 0 ? calcularPromedio('tc_compra') : 0;
 
   return (
     <div className="p-4">
@@ -84,7 +134,7 @@ export default function Page() {
           <Button
             variant="contained"
             color="primary"
-            onClick={fetchTipoCambioByDateRange}
+            onClick={fetchTipoCambioByDate}
             disabled={loading || !fecha}
             sx={{ mb: 2 }}
           >
@@ -105,28 +155,28 @@ export default function Page() {
       <div className="mb-4">
         <div className="flex gap-4 items-center mb-4">
           <div>
-          <TextField
-            type="date"
-            label="Fecha Inicio"
-            value={fechainit}
-            onChange={(e) => setFechainit(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-            fullWidth
-            sx={{ mb: 2 }}
-          />
+            <TextField
+              type="date"
+              label="Fecha Inicio"
+              value={fechainit}
+              onChange={(e) => setFechainit(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              variant="outlined"
+              fullWidth
+              sx={{ mb: 2 }}
+            />
           </div>
           <div>
-          <TextField
-            type="date"
-            label="Fecha Fin"
-            value={fechafin}
-            onChange={(e) => setFechafin(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-            fullWidth
-            sx={{ mb: 2 }}
-          />
+            <TextField
+              type="date"
+              label="Fecha Fin"
+              value={fechafin}
+              onChange={(e) => setFechafin(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              variant="outlined"
+              fullWidth
+              sx={{ mb: 2 }}
+            />
           </div>
           
           <Button
@@ -164,6 +214,15 @@ export default function Page() {
                 <TableCell>{item.no_solicitud}</TableCell>
               </TableRow>
             ))}
+            {/* Fila para los promedios, solo si hay datos */}
+            {tipoCambios.length > 0 && (
+              <TableRow>
+                <TableCell><strong>Promedio</strong></TableCell>
+                <TableCell><strong>{promedioVenta}</strong></TableCell>
+                <TableCell><strong>{promedioCompra}</strong></TableCell>
+                <TableCell colSpan={2}></TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
