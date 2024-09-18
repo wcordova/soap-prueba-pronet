@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import soap from 'soap';
+import * as soap from 'soap'; // O usa 'import soap from 'soap';' si prefieres
 
 export async function POST(request: Request) {
   const { fechainit } = await request.json();
@@ -17,12 +17,18 @@ export async function POST(request: Request) {
   try {
     console.log('SOAP URL:', SOAP_URL);
 
+    // Crear cliente SOAP
     const client = await new Promise<any>((resolve, reject) => {
       soap.createClient(SOAP_URL, (err, client) => {
-        if (err) reject(err);
-        else resolve(client);
+        if (err) {
+          console.error('Error al crear cliente SOAP:', err);
+          reject(err);
+        } else {
+          resolve(client);
+        }
       });
     });
+
     console.log('Client:', client);
 
     // Llamar al método del servicio SOAP
