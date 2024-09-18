@@ -100,8 +100,8 @@ export default function Page() {
       if (!response.ok) {
         throw new Error('Error al obtener los datos');
       }
-      const data = await response.json(); // Adjust this based on actual response
-      setTipoCambios(data.data || []);
+      await response.json(); // Adjust this based on actual response
+      setTipoCambios([]);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
