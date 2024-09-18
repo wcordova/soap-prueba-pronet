@@ -7,7 +7,6 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   const { fechainit } = await request.json();
-
   if (!fechainit) {
     return NextResponse.json({ error: 'Fecha inicial es requerida' }, { status: 400 });
   }
