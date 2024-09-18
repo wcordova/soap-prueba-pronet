@@ -15,6 +15,14 @@ import {
 } from '@mui/material';
 import { formatDate } from '../utils/helper';
 
+interface TipoCambio {
+  fecha: string;
+  tc_venta: number;
+  tc_compra: number;
+  moneda: string;
+  no_solicitud: string;
+}
+
 export default function Page() {
   const [fecha, setFecha] = useState('');
   const [fechainit, setFechainit] = useState(''); 
@@ -33,7 +41,7 @@ export default function Page() {
       if (!response.ok) {
         throw new Error('Error al obtener los datos');
       }
-      const data = await response.json();
+      const data: { data: TipoCambio[]; totalPages: number; currentPage: number } = await response.json();
       setTipoCambios(data.data || []);
       setTotalPages(data.totalPages || 1);
       setCurrentPage(data.currentPage - 1 || 0);
