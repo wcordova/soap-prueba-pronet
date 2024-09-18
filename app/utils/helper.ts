@@ -10,3 +10,8 @@ export const formatDate = (dateString: string) => {
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   };
+
+export function convertToISODate(fecha: string) {
+    const [day, month, year] = fecha.split('/');
+    return `${year}-${month}-${day}`; 
+}

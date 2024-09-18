@@ -5,6 +5,8 @@ import { formatDate } from '../utils/helper';
 
 export default function Page() {
   const [fecha, setFecha] = useState('');
+  const [fechainit, setFechainit] = useState(''); // Nueva fecha de inicio
+  const [fechafin, setFechafin] = useState(''); // Nueva fecha de fin
   const [tipoCambios, setTipoCambios] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -32,24 +34,22 @@ export default function Page() {
     }
   };
 
-  const fetchTipoCambioByDate = async () => {
-    if (!fecha) return; 
+  // Función para buscar por rango de fechas (fecha inicio y fecha fin)
+  const fetchTipoCambioByDateRange = async () => {
+    if (!fechainit || !fechafin) return;
 
     setLoading(true);
     try {
-      const formattedFecha = formatDate(fecha);
-      const response = await fetch('/api/fetch-tipo-cambio', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fechainit: formattedFecha }),
-      });
+      const formattedFechainit = formatDate(fechainit);
+      const formattedFechafin = formatDate(fechafin);
+      const response = await fetch(`/api/tipo-cambios?fechainit=${formattedFechainit}&fechafin=${formattedFechafin}`);
       if (!response.ok) {
         throw new Error('Error al obtener los datos');
       }
-      await response.json();
-      setTipoCambios([]);
+      const data = await response.json();
+      setTipoCambios(data.data || []);
+      setTotalPages(data.totalPages || 1);
+      setCurrentPage(0);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -69,7 +69,6 @@ export default function Page() {
         Consultar Tipo de Cambio
       </Typography>
 
-      {/* Div para la búsqueda y selección de fecha */}
       <div className="mb-4">
         <div className="flex gap-4 items-center mb-4">
           <TextField
@@ -79,13 +78,15 @@ export default function Page() {
             InputLabelProps={{ shrink: true }}
             variant="outlined"
             fullWidth
-            helperText="Seleccione una fecha en formato dd/mm/yyyy"
+            helperText="Seleccione una fecha específica"
+            sx={{ mb: 2 }}
           />
           <Button
             variant="contained"
             color="primary"
-            onClick={fetchTipoCambioByDate}
+            onClick={fetchTipoCambioByDateRange}
             disabled={loading || !fecha}
+            sx={{ mb: 2 }}
           >
             Enviar solicitud
           </Button>
@@ -95,9 +96,49 @@ export default function Page() {
           color="secondary"
           onClick={() => fetchTipoCambios(0)}
           disabled={loading}
+          sx={{ mb: 2 }}
         >
           Buscar Todos
         </Button>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex gap-4 items-center mb-4">
+          <div>
+          <TextField
+            type="date"
+            label="Fecha Inicio"
+            value={fechainit}
+            onChange={(e) => setFechainit(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            variant="outlined"
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          </div>
+          <div>
+          <TextField
+            type="date"
+            label="Fecha Fin"
+            value={fechafin}
+            onChange={(e) => setFechafin(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            variant="outlined"
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          </div>
+          
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={fetchTipoCambioByDateRange}
+            disabled={loading || !fechainit || !fechafin}
+            sx={{ mb: 2 }}
+          >
+            Buscar por Rango de Fechas
+          </Button>
+        </div>
       </div>
 
       {error && <Typography color="error">{error}</Typography>}
